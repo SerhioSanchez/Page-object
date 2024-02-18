@@ -1,43 +1,50 @@
 package ru.netology.web.test;
 
-import org.junit.jupiter.api.Test;
 import ru.netology.web.data.DataHelper;
-import ru.netology.web.page.LoginPageV1;
-import ru.netology.web.page.LoginPageV2;
-import ru.netology.web.page.LoginPageV3;
+import ru.netology.web.page.DashboardPage;
+import ru.netology.web.page.LoginPage;
+import ru.netology.web.page.TransferPage;
+import ru.netology.web.page.VerificationPage;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 
 import static com.codeborne.selenide.Selenide.open;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class MoneyTransferTest {
-    @Test
-    void shouldTransferMoneyBetweenOwnCardsV1() {
-      open("http://localhost:9999");
-      var loginPage = new LoginPageV1();
-//    var loginPage = open("http://localhost:9999", LoginPageV1.class);
-      var authInfo = DataHelper.getAuthInfo();
-      var verificationPage = loginPage.validLogin(authInfo);
-      var verificationCode = DataHelper.getVerificationCodeFor(authInfo);
-      verificationPage.validVerify(verificationCode);
-    }
 
-  @Test
-  void shouldTransferMoneyBetweenOwnCardsV2() {
+  private DashboardPage dashboardPage;
+  private TransferPage transferPage;
+
+  @BeforeEach
+  void setup() {
     open("http://localhost:9999");
-    var loginPage = new LoginPageV2();
-//    var loginPage = open("http://localhost:9999", LoginPageV2.class);
-    var authInfo = DataHelper.getAuthInfo();
-    var verificationPage = loginPage.validLogin(authInfo);
-    var verificationCode = DataHelper.getVerificationCodeFor(authInfo);
-    verificationPage.validVerify(verificationCode);
+    DataHelper.LogInfo user = DataHelper.getLogInfo();
+    LoginPage loginPage = new LoginPage();
+    loginPage.tryLogin(user);
+    DataHelper.VerificationCode verCode = DataHelper.getCode();
+    VerificationPage verificationPage = new VerificationPage();
+    verificationPage.tryVerification(verCode);
   }
 
   @Test
-  void shouldTransferMoneyBetweenOwnCardsV3() {
-    var loginPage = open("http://localhost:9999", LoginPageV3.class);
-    var authInfo = DataHelper.getAuthInfo();
-    var verificationPage = loginPage.validLogin(authInfo);
-    var verificationCode = DataHelper.getVerificationCodeFor(authInfo);
-    verificationPage.validVerify(verificationCode);
+  @DisplayName("Should perform card transfer")
+  void shouldPerformCardTransfer() {
+    DataHelper.CardInfo fc = DataHelper.getFirstCardInfo();
+    DataHelper.CardInfo sc = DataHelper.getSecondCardInfo();
+    var dashboardPage = new DashboardPage();
+    var beginBalance1 = dashboardPage.getCardBalance(fc);
+    var beginBalance2 = dashboardPage.getCardBalance(sc);
+    int transferAmount = DataHelper.generateAmount(beginBalance1);
+    var expectedBalance1 = beginBalance1 - transferAmount;
+    var expectedBalance2 = beginBalance2 + transferAmount;
+    dashboardPage.SelectCard(sc);
+    var transferPage = new TransferPage();
+    transferPage.transferMoney(fc.getCardNumber(), transferAmount);
+    var endBalance1 = dashboardPage.getCardBalance(fc);
+    var endBalance2 = dashboardPage.getCardBalance(sc);
+    assertEquals(expectedBalance1, endBalance1);
+    assertEquals(expectedBalance2, endBalance2);
   }
 }
-
